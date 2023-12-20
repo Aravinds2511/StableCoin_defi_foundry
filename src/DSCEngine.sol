@@ -119,49 +119,49 @@ contract DSCEngine is ReentrancyGuard {
 
     //////Private and Internal view Functions/////
 
-    // function _getAccountInformation(address user)
-    //     private
-    //     view
-    //     returns (uint256 totalDscMinted, uint256 collateralValueInUsd)
-    // {
-    //     totalDscMinted = s_DSCMinted[user];
-    //     collateralValueInUsd = getAccountCollateralValueInUsd(user);
-    // }
+    function _getAccountInformation(address user)
+        private
+        view
+        returns (uint256 totalDscMinted, uint256 collateralValueInUsd)
+    {
+        totalDscMinted = s_DSCMinted[user];
+        collateralValueInUsd = getAccountCollateralValueInUsd(user);
+    }
 
-    // /*
-    //  * Returns how close to liquidation a user is
-    //  * If a user goes below 1, then they get liquidated
-    //  */
+    /*
+     * Returns how close to liquidation a user is 
+     * If a user goes below 1, then they get liquidated 
+     */
 
-    // function _healthFactor(address user) private view returns (uint256) {
-    //     (uint256 totalDscMinted, uint256 collateralValueInUsd) = _getAccountInformation(user);
-    //     uint256 collateralAdjustedForThreshold = (collateralValueInUsd * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION;
-    //     return (collateralAdjustedForThreshold * PRECISION) / totalDscMinted;
-    // }
+    function _healthFactor(address user) private view returns (uint256) {
+        (uint256 totalDscMinted, uint256 collateralValueInUsd) = _getAccountInformation(user);
+        uint256 collateralAdjustedForThreshold = (collateralValueInUsd * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION;
+        return (collateralAdjustedForThreshold * PRECISION) / totalDscMinted;
+    }
 
-    // //checks the health factor and revert if they don't
-    // function _revertIfHealthFactorIsBroken(address user) internal view {
-    //     uint256 userHealthFactor = _healthFactor(user);
-    //     if (userHealthFactor < MIN_HEALTH_FACTOR) {
-    //         revert DSCEngine_BreaksHealthFactor(userHealthFactor);
-    //     }
-    // }
+    //checks the health factor and revert if they don't
+    function _revertIfHealthFactorIsBroken(address user) internal view {
+        uint256 userHealthFactor = _healthFactor(user);
+        if (userHealthFactor < MIN_HEALTH_FACTOR) {
+            revert DSCEngine_BreaksHealthFactor(userHealthFactor);
+        }
+    }
 
-    // //////Public and External view Functions/////
-    // function getAccountCollateralValueInUsd(address user) public view returns (uint256 totalCollateralValueInUsd) {
-    //     //loop through each collateral token, get the amount they have deposited, and map it to
-    //     // the price to get the collateral value
-    //     for (uint256 i = 0; i < s_collateralTokens.length; i++) {
-    //         address token = s_collateralTokens[i];
-    //         uint256 amount = s_collateralDeposited[user][token];
-    //         totalCollateralValueInUsd += getUsdValue(token, amount);
-    //     }
-    // }
+    //////Public and External view Functions/////
+    function getAccountCollateralValueInUsd(address user) public view returns (uint256 totalCollateralValueInUsd) {
+        //loop through each collateral token, get the amount they have deposited, and map it to
+        // the price to get the collateral value
+        for (uint256 i = 0; i < s_collateralTokens.length; i++) {
+            address token = s_collateralTokens[i];
+            uint256 amount = s_collateralDeposited[user][token];
+            totalCollateralValueInUsd += getUsdValue(token, amount);
+        }
+    }
 
-    // function getUsdValue(address token, uint256 amount) public view returns (uint256) {
-    //     AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[token]);
-    //     (, int256 price,,,) = priceFeed.latestRoundData();
-    //     // the number from the CL has 1e8
-    //     return (uint256(price) * ADDITIONAL_FEED_PRECISION * amount) / PRECISION;
-    // }
+    function getUsdValue(address token, uint256 amount) public view returns (uint256) {
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[token]);
+        (, int256 price,,,) = priceFeed.latestRoundData();
+        // the number from the CL has 1e8
+        return (uint256(price) * ADDITIONAL_FEED_PRECISION * amount) / PRECISION;
+    }
 }
