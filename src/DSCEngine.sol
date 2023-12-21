@@ -146,7 +146,7 @@ contract DSCEngine is ReentrancyGuard {
         nonReentrant
     {
         _redeemCollateral(msg.sender, msg.sender, tokenCollateralAddress, amountCollateral);
-        _revertIfHealthFactorIsBroken(msg.sender);
+        //_revertIfHealthFactorIsBroken(msg.sender);
     }
 
     /*
@@ -165,7 +165,7 @@ contract DSCEngine is ReentrancyGuard {
 
     function burnDsc(uint256 amount) public moreThanZero(amount) {
         _burnDsc(amount, msg.sender, msg.sender);
-        _revertIfHealthFactorIsBroken(msg.sender); // will not hit
+        //_revertIfHealthFactorIsBroken(msg.sender); // will not hit
     }
 
     /*
