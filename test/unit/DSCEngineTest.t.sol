@@ -8,7 +8,6 @@ import {DSCEngine} from "../../src/DSCEngine.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/ERC20Mock.sol";
 import {MockV3Aggregator} from "../mocks/MockV3Aggregator.sol";
-//import {StdCheats} from "forge-std/StdCheats.sol";
 
 contract DSCEngineTest is Test {
     event CollateralRedeemed(address indexed redeemFrom, address indexed redeemTo, address token, uint256 amount); // if redeemFrom != redeemedTo, then it was liquidated
@@ -26,6 +25,8 @@ contract DSCEngineTest is Test {
     uint256 public constant AMOUNT_COLLATERAL = 10 ether;
     uint256 public constant AMOUNT_TO_MINT = 100 ether;
     uint256 public constant STARTING_ERC20_BALANCE = 10 ether;
+    uint256 public constant MIN_HEALTH_FACTOR = 1e18;
+    uint256 public constant LIQUIDATION_THRESHOLD = 50;
 
     //liquidation
     address public LIQUIDATOR = makeAddr("liquidator");
@@ -255,5 +256,62 @@ contract DSCEngineTest is Test {
         vm.expectRevert(DSCEngine.DSCEngine_HealthFactorOk.selector);
         dsce.liquidate(weth, USER, AMOUNT_TO_MINT);
         vm.stopPrank();
+    }
+
+    //////// View & Pure Function Tests //////
+    function testGetCollateralTokenPriceFeed() public {
+        address priceFeed = dsce.getCollateralTokenPriceFeed(weth);
+        assertEq(priceFeed, ethUsdPriceFeed);
+    }
+
+    function testGetCollateralTokens() public {
+        address[] memory collateralTokens = dsce.getCollateralTokens();
+        assertEq(collateralTokens[0], weth);
+    }
+
+    function testGetMinHealthFactor() public {
+        uint256 minHealthFactor = dsce.getMinHealthFactor();
+        assertEq(minHealthFactor, MIN_HEALTH_FACTOR);
+    }
+
+    function testGetLiquidationThreshold() public {
+        uint256 liquidationThreshold = dsce.getLiquidationThreshold();
+        assertEq(liquidationThreshold, LIQUIDATION_THRESHOLD);
+    }
+
+    function testGetAccountCollateralValueFromInformation() public depositedCollateral {
+        (, uint256 collateralValue) = dsce.getAccountInformation(USER);
+        uint256 expectedCollateralValue = dsce.getUsdValue(weth, AMOUNT_COLLATERAL);
+        assertEq(collateralValue, expectedCollateralValue);
+    }
+
+    function testGetCollateralBalanceOfUser() public {
+        vm.startPrank(USER);
+        ERC20Mock(weth).approve(address(dsce), AMOUNT_COLLATERAL);
+        dsce.depositCollateral(weth, AMOUNT_COLLATERAL);
+        vm.stopPrank();
+        uint256 collateralBalance = dsce.getCollateralBalanceOfUser(USER, weth);
+        assertEq(collateralBalance, AMOUNT_COLLATERAL);
+    }
+
+    function testGetAccountCollateralValue() public {
+        vm.startPrank(USER);
+        ERC20Mock(weth).approve(address(dsce), AMOUNT_COLLATERAL);
+        dsce.depositCollateral(weth, AMOUNT_COLLATERAL);
+        vm.stopPrank();
+        uint256 collateralValue = dsce.getAccountCollateralValue(USER);
+        uint256 expectedCollateralValue = dsce.getUsdValue(weth, AMOUNT_COLLATERAL);
+        assertEq(collateralValue, expectedCollateralValue);
+    }
+
+    function testGetDsc() public {
+        address dscAddress = dsce.getDsc();
+        assertEq(dscAddress, address(dsc));
+    }
+
+    function testLiquidationPrecision() public {
+        uint256 expectedLiquidationPrecision = 100;
+        uint256 actualLiquidationPrecision = dsce.getLiquidationPrecision();
+        assertEq(actualLiquidationPrecision, expectedLiquidationPrecision);
     }
 }
