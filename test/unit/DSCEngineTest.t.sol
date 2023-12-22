@@ -27,6 +27,10 @@ contract DSCEngineTest is Test {
     uint256 public constant AMOUNT_TO_MINT = 100 ether;
     uint256 public constant STARTING_ERC20_BALANCE = 10 ether;
 
+    //liquidation
+    address public LIQUIDATOR = makeAddr("liquidator");
+    uint256 public COLLATERAL_TO_COVER = 20 ether;
+
     function setUp() external {
         deployer = new DeployDSC();
         (dsc, dsce, config) = deployer.run();
@@ -216,4 +220,40 @@ contract DSCEngineTest is Test {
     }
 
     //////// healthFactor Tests //////////
+
+    function testProperlyReportsHealthFactor() public depositedCollateralAndMintDsc {
+        uint256 expectedHealthFactor = 100 ether;
+        uint256 healthFactor = dsce.getHealthFactor(USER);
+        // $100 minted with $20,000 collateral at 50% liquidation threshold
+        // means that we must have $200 collatareral at all times.
+        // 20,000 * 0.5 = 10,000
+        // 10,000 / 100 = 100 health factor
+        assertEq(healthFactor, expectedHealthFactor);
+    }
+
+    function testHealthFactorCanGoBelowOne() public depositedCollateralAndMintDsc {
+        int256 ethUsdUpdatedPrice = 18e8; // 1 ETH = $18 from 1 ETH = $2000
+        // Rememeber, we need $200 at all times if we have $100 of debt
+
+        MockV3Aggregator(ethUsdPriceFeed).updateAnswer(ethUsdUpdatedPrice);
+
+        uint256 userHealthFactor = dsce.getHealthFactor(USER);
+        // 180*50 (LIQUIDATION_THRESHOLD) / 100 (LIQUIDATION_PRECISION) / 100 (PRECISION) = 90 / 100 (totalDscMinted) = 0.9
+        assert(userHealthFactor == 0.9 ether);
+    }
+
+    ///////Liquidation///////
+
+    function testCantLiquidateGoodHealthFactor() public depositedCollateralAndMintDsc {
+        ERC20Mock(weth).mint(LIQUIDATOR, COLLATERAL_TO_COVER);
+
+        vm.startPrank(LIQUIDATOR);
+        ERC20Mock(weth).approve(address(dsce), COLLATERAL_TO_COVER);
+        dsce.depositCollateralAndMintDsc(weth, COLLATERAL_TO_COVER, AMOUNT_TO_MINT);
+        dsc.approve(address(dsce), AMOUNT_TO_MINT);
+
+        vm.expectRevert(DSCEngine.DSCEngine_HealthFactorOk.selector);
+        dsce.liquidate(weth, USER, AMOUNT_TO_MINT);
+        vm.stopPrank();
+    }
 }
