@@ -8,9 +8,6 @@
     1. wETH
     2. wBTC
 4. Unit and Fuzz tests. 
-
-Certainly! Here's a concise README for the provided Solidity smart contract:
-
 ---
 
 # Decentralized Stablecoin Engine (DSCEngine)
@@ -40,8 +37,5 @@ The DSCEngine is the core contract within the Decentralized Stablecoin (DSC) sys
 
 ### Deployment
 Deploy the contract with specified ERC20 tokens and price feed addresses, along with the associated Decentralized Stablecoin contract.
-
-### Disclaimer
-This contract is inspired by MakerDAO's DSS system, providing stability and collateral-backed minting of DSC tokens. Review and deploy with caution. Adjust parameters to suit specific use cases.
 
 ---
