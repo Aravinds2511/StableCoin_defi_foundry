@@ -45,6 +45,3 @@ Deploy the contract with specified ERC20 tokens and price feed addresses, along 
 This contract is inspired by MakerDAO's DSS system, providing stability and collateral-backed minting of DSC tokens. Review and deploy with caution. Adjust parameters to suit specific use cases.
 
 ---
-
-This README provides a concise summary of the DSCEngine contract, highlighting its features, components, usage, customization options, and a disclaimer about deployment considerations.
-
