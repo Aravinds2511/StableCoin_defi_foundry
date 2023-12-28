@@ -8,6 +8,7 @@ import {DSCEngine} from "../../src/DSCEngine.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/ERC20Mock.sol";
 import {MockV3Aggregator} from "../mocks/MockV3Aggregator.sol";
+import {MockFailedTransferFrom} from "../mocks/MockFailedTransferFrom.sol";
 
 contract DSCEngineTest is Test {
     event CollateralRedeemed(address indexed redeemFrom, address indexed redeemTo, address token, uint256 amount); // if redeemFrom != redeemedTo, then it was liquidated
@@ -70,6 +71,27 @@ contract DSCEngineTest is Test {
     }
 
     ///////depositCollateral Tests ////////
+
+    function testRevertsIfTransferFromFails() public {
+        address owner = msg.sender;
+        vm.prank(owner);
+        MockFailedTransferFrom mockDsc = new MockFailedTransferFrom();
+        tokenAddresses = [address(mockDsc)];
+        priceFeedAddresses = [ethUsdPriceFeed];
+        vm.prank(owner);
+        DSCEngine mockDsce = new DSCEngine(tokenAddresses, priceFeedAddresses, address(mockDsc));
+        mockDsc.mint(USER, AMOUNT_COLLATERAL);
+
+        vm.prank(owner);
+        mockDsc.transferOwnership(address(mockDsce));
+
+        vm.startPrank(USER);
+        ERC20Mock(address(mockDsc)).approve(address(mockDsce), AMOUNT_COLLATERAL);
+
+        vm.expectRevert(DSCEngine.DSCEngine_TransferFailed.selector);
+        mockDsce.depositCollateral(address(mockDsc), AMOUNT_COLLATERAL);
+        vm.stopPrank();
+    }
 
     function testRevertsIfCollateralZero() public {
         vm.startPrank(USER);
